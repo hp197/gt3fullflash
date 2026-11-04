@@ -1,0 +1,16 @@
+# firmware blobs, dumps and built images — never commit these
+*.bin
+*.hex
+*.elf
+*.dump
+*.img
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# os / editor
+.DS_Store
+*.swp
