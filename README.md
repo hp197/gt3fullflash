@@ -45,8 +45,9 @@ from-source implementation of the x3 VCU bootloader. It brings up the clock, rea
 the boot descriptor, commits a staged OTA (slot1 to slot0), then validates and
 launches slot0.
 
-By default the tool downloads the latest released build from the x3-vcu-boot repo
-and verifies it against the release's `SHA256SUMS.txt`. Use `--bootloader-version
+By default the tool downloads the latest released build from the
+[x3-vcu-boot](https://github.com/hp197/x3-vcu-boot) repo and verifies it against the
+release's `SHA256SUMS.txt`. Use `--bootloader-version
 <tag>` to pin a specific release, or `--bootloader <file>` to supply your own `.bin`
 (≤ 4 KB) and skip the download. Only the identity-template skeleton is embedded in
 the script.
