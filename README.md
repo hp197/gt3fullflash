@@ -126,17 +126,13 @@ openocd -s <scripts> -f interface/stlink.cfg -f target/artery/at32f4x.cfg \
   -c "reset run" -c "exit"
 ```
 
-A full 128 KB write takes about a minute; `verify_image` confirms it. The part
+A full 128 KB write takes about a few seconds and `verify_image` confirms it. The part
 must be readout-unprotected (FAP off) to accept the write — **do not re-enable
 readout protection afterwards**, as the AT32F415 mass-erases main flash when
 protection is restored.
 
 ## Caveats
 
-- Calibration (throttle/brake) is **not** part of the rebuilt identity; expect to
-  recalibrate after a bare recovery.
-- The embedded template is a structural skeleton only; device-specific fields are
-  overlaid from your CLI arguments or re-consolidated by the firmware at boot.
 - This targets the AT32F415-based GT3 VCU. Other x3 members share the platform but
   verify the chip (`Device ID`/`UID`) before writing.
 
