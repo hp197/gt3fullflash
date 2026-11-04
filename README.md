@@ -104,10 +104,14 @@ VCU (including a readout-protected part via its power-on catch), validates the i
 and writes it. This is the recommended path.
 
 OpenOCD is a manual fallback if you would rather flash it yourself, for example with
-an ST-Link v2:
+an ST-Link v2. Note that `target/artery/at32f4x.cfg` is not in mainline OpenOCD: use an
+OpenOCD build that ships the Artery AT32 target (the one bundled with x3utils has it,
+under `xpack-openocd-*/openocd/scripts`). Point `-s` at that scripts directory, the
+folder that contains the `interface/` and `target/` config trees:
 
 ```bash
-openocd -s <scripts> -f interface/stlink.cfg -f target/artery/at32f4x.cfg \
+openocd -s /path/to/openocd/scripts \
+  -f interface/stlink.cfg -f target/artery/at32f4x.cfg \
   -c "init" -c "reset halt" \
   -c "flash write_image erase package.bin 0x08000000 bin" \
   -c "verify_image package.bin 0x08000000 bin" \
