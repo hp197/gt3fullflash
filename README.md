@@ -32,32 +32,6 @@ is sane. There is no application CRC check on a cold boot. Mirroring the app int
 both slots also satisfies the OTA "both slots identical" compare, so the image
 boots regardless of the firmware's OTA-pending flag.
 
-## Identity record format
-
-```
-+0x000  u16    magic 0x505C
-+0x00C  u32    valid flag (1)
-+0x010  2×u16  version (major.minor)
-+0x020  14     serial, ASCII
-+0x080  …      per-mode config / tune
-+0x180  20     MCU component entry:  [id 12][0x01 0x00][rand 6]
-+0x1B4  12     VCU component entry:  [id 12]
-+0x1F4  u32    checksum  (see below)
-+0x1FE  u16    record version counter (higher wins; erased records fail the checksum)
-```
-
-- id encoding: 12 bytes, each 16-bit halfword byte-swapped (app display order to
-  flash order). The tool does this conversion.
-- rand: 6 bytes, stored verbatim (accepted as hex or ASCII on the CLI).
-- checksum: the sum of the record's 256 signed `int16` halfwords, excluding the
-  two halfwords at `+0x1F4`/`+0x1F6`, stored little-endian 32-bit at `+0x1F4`.
-
-The firmware re-consolidates the component table at boot (it re-reads the MCU over
-the internal bus), so those fields self-heal. A valid record plus the correct
-serial are what make the controller accept the identity. The VCU's own rand field
-(`+0x30`) is firmware-managed and gets rewritten on boot; `--vcu-rand` seeds it but
-the firmware ultimately owns it.
-
 ## Requirements
 
 - Python 3.8+ (standard library only).
