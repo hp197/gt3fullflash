@@ -34,8 +34,6 @@ image boots regardless of the firmware's OTA-pending flag.
 
 ## Identity record format
 
-Reverse-engineered from a live controller and a full platform dump:
-
 ```
 +0x000  u16    magic 0x505C
 +0x00C  u32    valid flag (1)
@@ -67,9 +65,12 @@ seeds it, but the firmware ultimately owns it.
 - Your device identity values (read them from the Segway-Ninebot app's device
   info, or an earlier BLE/SWD dump).
 
-The bootloader and an identity-template skeleton are embedded in the script, so
-no reference dump is required. You can override the bootloader with your own 4 KB
-blob via `--bootloader`.
+The embedded bootloader is **[x3-vcu-boot](https://github.com/hp197/x3-vcu-boot)** —
+an open implementation of the x3 VCU bootloader. It brings up the clock, reads the boot
+descriptor, commits a staged OTA (slot1 → slot0), then validates and launches slot0.
+Together with the identity-template skeleton it's embedded in the script, so no
+reference dump is required. You can override it with your own 4 KB blob via
+`--bootloader`.
 
 ## Install
 
