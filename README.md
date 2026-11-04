@@ -71,6 +71,23 @@ The bootloader and an identity-template skeleton are embedded in the script, so
 no reference dump is required. You can override the bootloader with your own 4 KB
 blob via `--bootloader`.
 
+## Install
+
+No build step and no dependencies — it's a single self-contained script. Clone the
+repo (or just download `build_package.py`) and run it with Python:
+
+```bash
+git clone https://github.com/hp197/gt3fullflash.git
+cd gt3fullflash
+python3 build_package.py --help
+```
+
+Optionally make it executable and put it on your `PATH`:
+
+```bash
+chmod +x build_package.py
+```
+
 ## Usage
 
 ```bash
