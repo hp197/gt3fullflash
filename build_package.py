@@ -45,14 +45,9 @@ The VCU's own rand field (+0x30) is firmware-managed and gets rewritten on boot;
 seeds it but the firmware owns it.
 ------------------------------------------------------------------------------
 """
-import argparse, base64, struct, sys, hashlib
+import argparse, base64, struct, sys, hashlib, urllib.request
 
-# ---- embedded blobs (base64) --------------------------------------------------
-# Bootloader: the open x3-vcu-boot replica (BSD-3 Artery BSP + CMSIS, built from source
-# at https://github.com/hp197/x3-vcu-boot). Model-agnostic: brings up the clock, reads the
-# boot descriptor, commits a staged OTA (slot1 -> slot0), then validates the slot0 SP and
-# launches it. 3028 B of code, padded with 0xFF to the 4 KB region. Override via --bootloader.
-BOOTLOADER = base64.b64decode("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s/v48Aj7EDNF6gNEAPsK+qJFCNke6wQEAPH/M2vSokVp2QI4dERA6glAoPsCiaTrCgRMRcJGS0ZU01HQAC5p0LHrCgVk6wMEBPoM/P1A/EBM6gUFxukAVAAnR+fC8SADIPoD95VAAfoC8CH6A/NP6hVOOEMBDLP7/vcf+oX4DvsXM0HqA0EH+wjzi0IE+gL0B9lpGAfx/zwv0otCLdkCPylEyxqBsrP7/vAO+xAzQeoDQQD7CPOLQgfZaRgA8f88F9KLQhXZAjgpRMkaQOoHRzvnN0YwRgnnB0bn5hhG++ZBRavSuOsCCmnrDgIBOBNGpOdgRunnGEaV52dG0eeBRnznAjgsREfnrPECDCtEL+c4RgjnN0bp5nBHAL8AAAAAAAAAAAECAwQGBwgJ+LUAv/i8CLyeRnBH+LUAv/i8CLyeRnBHABJ6AP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////w==")
+# ---- embedded identity template (base64) ------------------------------------
 # Identity template: structural skeleton ONLY (magic / flag / version / config).
 # All device-identifying fields are zeroed; your values are overlaid at build time.
 TEMPLATE   = base64.b64decode("XFAAAAAAAAAAAAAAAQAAAAMAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABzMgAAAwAFBQAFEBkAYxAZAGMFAAcAAAAAAQAAAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAgAAAAAAAAAcFCMZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAV4k=")
@@ -111,6 +106,45 @@ def build_record(serial, vcu_id, mcu_id, vcu_rand, mcu_rand, counter):
     struct.pack_into('<H', rec, OFF_CKHI, (s >> 16) & 0xFFFF)
     return bytes(rec)
 
+# The open bootloader lives in its own repo and is published as a release asset.
+BOOTLOADER_REPO = "hp197/x3-vcu-boot"
+BOOTLOADER_ASSET = "x3-vcu-boot.bin"
+
+def _release_base(version):
+    if version in (None, "latest"):
+        return f"https://github.com/{BOOTLOADER_REPO}/releases/latest/download"
+    return f"https://github.com/{BOOTLOADER_REPO}/releases/download/{version}"
+
+def _http_get(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "gt3fullflash"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read()
+
+def download_bootloader(version):
+    """Fetch x3-vcu-boot.bin from the public releases and verify its SHA256."""
+    base = _release_base(version)
+    print(f"downloading bootloader from {BOOTLOADER_REPO} ({version})", file=sys.stderr)
+    data = _http_get(f"{base}/{BOOTLOADER_ASSET}")
+    try:
+        sums = _http_get(f"{base}/SHA256SUMS.txt").decode()
+        want = next((ln.split()[0] for ln in sums.splitlines()
+                     if ln.strip().endswith(BOOTLOADER_ASSET)), None)
+    except Exception as e:
+        want = None
+        print(f"  (SHA256SUMS unavailable, skipping verify: {e})", file=sys.stderr)
+    if want:
+        got = hashlib.sha256(data).hexdigest()
+        if got != want:
+            sys.exit(f"bootloader sha256 mismatch: got {got}, expected {want}")
+        print(f"  sha256 verified: {got[:16]}", file=sys.stderr)
+    return data
+
+def normalize_bootloader(data):
+    """Pad a raw bootloader image up to the 4 KB region; reject anything larger."""
+    if len(data) > 0x1000:
+        sys.exit(f"bootloader too big: {len(data)} > 4096 bytes")
+    return data + b"\xFF" * (0x1000 - len(data))
+
 def main():
     ap = argparse.ArgumentParser(
         description="Build a 128 KB Segway-Ninebot x3 (GT3) full-flash package.")
@@ -122,15 +156,19 @@ def main():
     ap.add_argument("--mcu-rand", required=True, help="6-byte MCU rand, hex or ASCII")
     ap.add_argument("--counter", type=lambda x: int(x, 0), default=0x8958,
                     help="identity record version counter (default 0x8958)")
-    ap.add_argument("--bootloader", help="override the embedded bootloader with a 4 KB .bin")
+    ap.add_argument("--bootloader", help="use a local bootloader .bin (<=4 KB) instead of downloading")
+    ap.add_argument("--bootloader-version", default="latest",
+                    help="x3-vcu-boot release tag to download (default: latest)")
     ap.add_argument("--no-mirror", action="store_true",
                     help="leave slot1 blank instead of mirroring slot0")
     ap.add_argument("-o", "--out", required=True, help="output 128 KB .bin")
     a = ap.parse_args()
 
-    boot = open(a.bootloader, "rb").read() if a.bootloader else BOOTLOADER
-    if len(boot) != 0x1000:
-        sys.exit(f"bootloader must be exactly 4096 bytes, got {len(boot)}")
+    if a.bootloader:
+        boot, boot_src = open(a.bootloader, "rb").read(), f"custom ({a.bootloader})"
+    else:
+        boot, boot_src = download_bootloader(a.bootloader_version), f"downloaded {a.bootloader_version}"
+    boot = normalize_bootloader(boot)
     app = open(a.slot0, "rb").read()
     if len(app) > SLOT_MAX:
         sys.exit(f"slot0 too big: {len(app)} > {SLOT_MAX}")
@@ -150,8 +188,7 @@ def main():
     stored = (struct.unpack_from('<H', rec, OFF_CKHI)[0] << 16) | struct.unpack_from('<H', rec, OFF_CKLO)[0]
     ok = checksum(rec) == stored
     print(f"wrote {a.out} ({len(img)} bytes)  sha256={hashlib.sha256(img).hexdigest()[:16]}")
-    print(f"  boot  @0x00000 : reset=0x{struct.unpack_from('<I',img,4)[0]:08x}"
-          f"{' (custom)' if a.bootloader else ' (embedded)'}")
+    print(f"  boot  @0x00000 : reset=0x{struct.unpack_from('<I',img,4)[0]:08x} ({boot_src})")
     print(f"  slot0 @0x01000 : {len(app)}B  SP=0x{struct.unpack_from('<I',img,0x1000)[0]:08x} "
           f"reset=0x{struct.unpack_from('<I',img,0x1004)[0]:08x}")
     print(f"  slot1 @0x10000 : {'mirror of slot0' if not a.no_mirror else 'blank'}")
