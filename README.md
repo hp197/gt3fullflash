@@ -104,14 +104,21 @@ VCU (including a readout-protected part via its power-on catch), validates the i
 and writes it. This is the recommended path.
 
 OpenOCD is a manual fallback if you would rather flash it yourself, for example with
-an ST-Link v2. Note that `target/artery/at32f4x.cfg` is not in mainline OpenOCD: use an
-OpenOCD build that ships the Artery AT32 target (the one bundled with x3utils has it,
-under `xpack-openocd-*/openocd/scripts`). Point `-s` at that scripts directory, the
-folder that contains the `interface/` and `target/` config trees:
+an ST-Link v2. The target is defined inline below (the same thing Artery's
+`target/artery/at32f4x.cfg` sets up), so no extra config file is needed. You still need
+an OpenOCD build with the Artery `artery` flash driver, which is not in mainline
+OpenOCD; the one bundled with x3utils has it. `interface/stlink.cfg` and
+`target/swj-dp.tcl` are mainline, so OpenOCD finds them on its default path.
 
 ```bash
-openocd -s /path/to/openocd/scripts \
-  -f interface/stlink.cfg -f target/artery/at32f4x.cfg \
+openocd -f interface/stlink.cfg \
+  -c "source [find target/swj-dp.tcl]" \
+  -c "swj_newdap at32f4x cpu -irlen 4 -ircapture 0x1 -irmask 0xf -expected-id 0x1ba01477" \
+  -c "dap create at32f4x.dap -chain-position at32f4x.cpu" \
+  -c "target create at32f4x.cpu cortex_m -endian little -dap at32f4x.dap" \
+  -c "at32f4x.cpu configure -work-area-phys 0x20000000 -work-area-size 0x1000" \
+  -c "flash bank at32f4x.flash artery 0x08000000 0 0 0 at32f4x.cpu" \
+  -c "adapter speed 1000" \
   -c "init" -c "reset halt" \
   -c "flash write_image erase package.bin 0x08000000 bin" \
   -c "verify_image package.bin 0x08000000 bin" \
