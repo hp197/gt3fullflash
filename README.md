@@ -121,8 +121,11 @@ restored.
 
 ## Caveats
 
-This targets the AT32F415-based GT3 VCU. Other x3 members share the platform, but
-verify the chip (`Device ID` / `UID`) before writing.
+Only the GT3 VCU has been validated. The other x3 members (G3 / ZT3 / F3 / E3) share
+the same AT32F415, the model-agnostic bootloader, and the identity-record format, so
+the tool should work for them as well, but that is untested. For another model, supply
+its own slot0 app and identity, confirm the chip (`Device ID` / `UID`) before writing,
+and proceed at your own risk.
 
 ## Disclaimer
 
